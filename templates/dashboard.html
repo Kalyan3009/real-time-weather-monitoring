@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="{{ url_for('static', filename='bootstrap.min.css') }}" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="{{ url_for('static', filename='chart.js') }}"></script>
+    <script src="{{ url_for('static', filename='chartjs-adapter-date-fns.js') }}"></script>
+
+    <style>
+        body {
+            background-color: #f5f5f5;
+        }
+        .container {
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-5">Weather Dashboard</h1>
+
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Temperature Trends</h3>
+                <canvas id="tempChart"></canvas>
+            </div>
+            <div class="col-md-6">
+                <h3>Humidity Trends</h3>
+                <canvas id="humidityChart"></canvas>
+            </div>
+        </div>
+
+        <div class="mt-5">
+            <h2>Current Weather Data</h2>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>City</th>
+                        <th>Temperature (°C)</th>
+                        <th>Feels Like (°C)</th>
+                        <th>Humidity (%)</th>
+                        <th>Wind Speed (m/s)</th>
+                        <th>Main Weather</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody id="weatherTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const cityColors = {
+            "Delhi": "#FF5733",
+            "Mumbai": "#33B5FF",
+            "Chennai": "#FF33A8",
+            "Bangalore": "#33FF57",
+            "Kolkata": "#FFC300",
+            "Hyderabad": "#8E44AD"
+        };
+
+        // Fetch data from the backend API
+        fetch("/api/weather_data")
+            .then(response => response.json())
+            .then(data => {
+                console.log("Fetched Data:", data);  // Debugging output
+
+                if (data.length === 0) {
+                    alert("No weather data available.");
+                    return;
+                }
+
+                populateTable(data);
+                plotTemperatureChart(data);
+                plotHumidityChart(data);
+            })
+            .catch(error => console.error("Error fetching data:", error));
+
+        // Populate the weather data table
+        function populateTable(data) {
+            const tableBody = document.getElementById("weatherTableBody");
+            tableBody.innerHTML = "";  // Clear table before populating
+            data.forEach(record => {
+                const row = `<tr>
+                    <td>${record.city}</td>
+                    <td>${record.temp}</td>
+                    <td>${record.feels_like}</td>
+                    <td>${record.humidity}</td>
+                    <td>${record.wind_speed}</td>
+                    <td>${record.main}</td>
+                    <td>${record.timestamp}</td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        // Plot temperature trends
+        function plotTemperatureChart(data) {
+            const ctx = document.getElementById("tempChart").getContext("2d");
+            const datasets = Object.keys(cityColors).map(city => ({
+                label: city,
+                data: data.filter(d => d.city === city).map(d => ({
+                    x: new Date(d.timestamp),
+                    y: d.temp
+                })),
+                borderColor: cityColors[city],
+                fill: false,
+                tension: 0.4,  // Smooth curves
+                borderWidth: 2,
+                pointRadius: 3
+            }));
+
+            new Chart(ctx, {
+                type: "line",
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: "Temperature Trends"
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: "time",
+                            time: { unit: "hour" },
+                            title: { display: true, text: "Timestamp" }
+                        },
+                        y: {
+                            title: { display: true, text: "Temperature (°C)" }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Plot humidity trends
+        function plotHumidityChart(data) {
+            const ctx = document.getElementById("humidityChart").getContext("2d");
+            const datasets = Object.keys(cityColors).map(city => ({
+                label: city,
+                data: data.filter(d => d.city === city).map(d => ({
+                    x: new Date(d.timestamp),
+                    y: d.humidity
+                })),
+                borderColor: cityColors[city],
+                fill: false,
+                tension: 0.4,  // Smooth curves
+                borderWidth: 2,
+                pointRadius: 3
+            }));
+
+            new Chart(ctx, {
+                type: "line",
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: "Humidity Trends"
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: "time",
+                            time: { unit: "hour" },
+                            title: { display: true, text: "Timestamp" }
+                        },
+                        y: {
+                            title: { display: true, text: "Humidity (%)" }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

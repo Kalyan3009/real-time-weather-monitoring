@@ -1,0 +1,7 @@
+sqlalchemy
+pymysql
+mysql-connector-python
+requests
+matplotlib
+Flask
+flask-cors
